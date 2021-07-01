@@ -25,6 +25,20 @@ def lcd_lines(message1, message2):
     lcd.putstr(line1)
     lcd.putstr(message2)
 
+def lcd_change_line(message1, linenumber):
+    if linenumber == 0:
+        lcd.move_to(0,0)
+        for char in message1[:16]:
+            lcd.putchar(char)
+        lcd.putstr(' ' * (16-len(message1[:16])))
+    elif linenumber == 1:
+        lcd.move_to(0,1)
+        for char in message1[:16]:
+            lcd.putchar(char)
+        lcd.putstr(' ' * (16-len(message1[:16])))
+    else:
+        print("Invalid line number")
+
 def button_pressed_thread():
     global button_pressed
     while True:
@@ -40,6 +54,8 @@ if __name__ == "__main__":
     while True:
         if button_pressed == 1:
             lcd_lines("The first line is too long", "The second line")
+            utime.sleep(3)
+            lcd_change_line("Different",1)
             led_1_external.toggle()
             utime.sleep(0.5)
             led_1_external.toggle()
