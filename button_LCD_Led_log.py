@@ -21,7 +21,7 @@ lcd = I2cLcd(i2c, I2C_ADDR, I2C_NUM_ROWS, I2C_NUM_COLS)
 lcd.putstr("Press button to turn on LED")
 n=0
 
-file=open("presses.txt","w")
+
 
 while True:
     if button_1.value() == 1:
@@ -43,7 +43,7 @@ while True:
         lcd.clear()
         
         n=n+1
-        
+        file=open("presses.txt","w")
         file.write("Number of presses is: ")
         file.write(str(n))
         file.flush()
