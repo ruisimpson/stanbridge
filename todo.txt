@@ -1,0 +1,11 @@
+What do these things do/ are they still implemented:
+
+dump_valve
+recycle_valve
+hot_water_valve
+
+Any other functions for override?
+
+Does the steam tank fill before main tank? 
+if main tank is empty can the steam tank always be full?
+(Do we have to wait for the main tank to fill before the steam heater can be turned on?)
