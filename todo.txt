@@ -9,3 +9,9 @@ Any other functions for override?
 Does the steam tank fill before main tank? 
 if main tank is empty can the steam tank always be full?
 (Do we have to wait for the main tank to fill before the steam heater can be turned on?)
+
+-Overflow sensor
+-Door open closed (on display)
+-Fix cold water glitch
+-Finish code
+-Implement logging on txt file
