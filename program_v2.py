@@ -63,12 +63,12 @@ def disinfect():
                 wait_update_ms(100)
             disinfect()  #recursively retry cycle
             break
-        if temperature.read_u16()//700 + 20 > 110:
+        if temperature.read_u16()//700 + 20 > 110: #check chamber temp
             lcd_change_line("ERROR: HIGH TEMP", 0)
             wait_update(1)
             lcd_change_line("COOLING", 0)
             led_steam_gen.value(0)
-            while temperature.read_u16()//700 + 20 > 90:
+            while temperature.read_u16()//700 + 20 > 90: #let chamber cool until it is <90C 
                 wait_update_ms(100)
             led_steam_gen.value(1)
             disinfect()
@@ -135,5 +135,3 @@ def main():
 
 if __name__ == "__main__":
     main()
-
-
