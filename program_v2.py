@@ -24,8 +24,10 @@ if __name__ == "__main__": #Ignore this if statement, just useful for easy impor
     temperature = machine.ADC(machine.Pin(26))                            #adc for pentiometer to simulate temperature
 
 def update_temp(): #Writes the "temperature" to the lcd
-    lcd_change_line("Temperature: "+str(temperature.read_u16()//700)+"C", 1) #reading the temperature and updating the display    
-
+    lcd_change_line("Temperature: "+str(temperature.read_u16()//700 + 20)+"C", 1) #reading the temperature and updating the display
+    if temperature.read_u16()//700 + 20 > 110: #IRL 120, temperature limited
+        led_steam_gen.value(0)
+    
 def wait_update(time): #Time must be integer. Updates the temperature while idle
     for _ in range(time*10):
         update_temp()
@@ -49,8 +51,34 @@ def hold_for_water():
     lcd_change_line("Holding for water", 0)
     while not float_switch.value(): #checking main tank is full of (cold) water
         wait_update_ms(100)
-        
+
+def disinfect():
+    lcd_change_line("Disinfecting", 0)
+    for _ in range(50): #70 seconds IRL
+        if temperature.read_u16()//700 + 20 < 85: #check chamber temp
+            lcd_change_line("ERROR: LOW TEMP", 0)
+            wait_update(1)
+            lcd_change_line("Heating steam", 0)
+            while temperature.read_u16()//700 + 20 < 85: #wait for chamber temp
+                wait_update_ms(100)
+            disinfect()  #recursively retry cycle
+            break
+        if temperature.read_u16()//700 + 20 > 110:
+            lcd_change_line("ERROR: HIGH TEMP", 0)
+            wait_update(1)
+            lcd_change_line("COOLING", 0)
+            led_steam_gen.value(0)
+            while temperature.read_u16()//700 + 20 > 90:
+                wait_update_ms(100)
+            led_steam_gen.value(1)
+            disinfect()
+            break
+        wait_update_ms(100)
+    led_steam_gen.value(0)
+
 def do_super_wash():
+    wait_update(1)
+    led_door_sol.value(0)
     hold_for_water()
     lcd_change_line("Washing", 0)
     led_main_pump.value(1)
@@ -73,11 +101,11 @@ def do_reg_wash():
         wait_update_ms(200)
         led_main_pump.value(0)
         wait_update_ms(200)
-    lcd_change_line("Heating Steam", 0)
-    while temperature.read_u16()//670 < 85: #checking chamber temp to see if it is disinfecting yet
-        wait_update(1)
-    lcd_change_line("Disinfecting", 0)
-    wait_update(5) #70 seconds IRL
+    
+    lcd_change_line("Heating steam", 0)
+    while temperature.read_u16()//700 + 20< 85:  #checking chamber temp to see if it is disinfecting yet
+        wait_update_ms(100)
+    disinfect() 
     led_steam_gen.value(0)
     hold_for_water()
     lcd_change_line("Rinsing", 0)
