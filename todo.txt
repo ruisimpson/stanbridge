@@ -14,3 +14,4 @@ if main tank is empty can the steam tank always be full?
 -Door open closed (on display)
 -Finish code
 -Implement logging on txt file
+-door should not open above 60C
