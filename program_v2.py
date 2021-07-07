@@ -6,6 +6,7 @@ from machine import I2C
 from pico_i2c_lcd import I2cLcd
 from program_v1 import wait_update, wait_update_ms #Functions for waiting whilst updating the temperature reading
 
+n=0 
 if __name__ == "__main__": #Ignore this if statement, just useful for easy importing of this file as a module
     # outputs (numbered from pico end down)
     led_main_pump = machine.Pin(25, machine.Pin.OUT)                      #onboard led
@@ -118,18 +119,46 @@ def do_reg_wash():
     led_door_sol.value(0)
     lcd_change_line("Door Unlocked", 0)
 
+def check_count():
+     
+    global file, time
+
+    file=open("presses.txt","w") #creates file
+    file.write("Number of presses is: ") #records n value
+    file.write(str(n))
+    file.flush()
+    if n==2:
+        time = utime.localtime() # records time when first service warning is given
+            
+    if n>1:
+        lcd.clear()
+        lcd_change_line("Unit needs servicing",0) #puts service warning on LCD after more than 1 press
+        utime.sleep(3)
+        lcd.clear()
+        file.write(". Service warning given on ") #puts service warning in log
+        
+        file.write("{year:>04d}/{month:>02d}/{day:>02d} {HH:>02d}:{MM:>02d}:{SS:>02d}".format(
+        year=time[0], month=time[1], day=time[2],
+        HH=time[3], MM=time[4], SS=time[5])) #with time
+        file.flush()
+
 def main():
+    global n
     lcd_change_line("Ready", 0)
     while True:
         if super_wash.value():
             led_door_sol.value(1)
             lcd_change_line("Superwash started", 0)
             do_super_wash()
+            n=n+1
+            check_count()
             lcd_change_line("Ready", 0)
         elif reg_wash.value():
             led_door_sol.value(1)
             lcd_change_line("Regular Wash", 0)
             do_reg_wash()
+            n=n+1
+            check_count()
             lcd_change_line("Ready", 0)
         wait_update_ms(100)
 
