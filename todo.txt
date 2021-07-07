@@ -12,6 +12,5 @@ if main tank is empty can the steam tank always be full?
 
 -Overflow sensor
 -Door open closed (on display)
--Fix cold water glitch
 -Finish code
 -Implement logging on txt file
