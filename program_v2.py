@@ -123,8 +123,8 @@ def check_count():
      
     global file, time
 
-    file=open("presses.txt","w") #creates file
-    file.write("Number of presses is: ") #records n value
+    file=open("log.txt","w") #creates file
+    file.write("Number of cycles is: ") #records n value
     file.write(str(n))
     file.flush()
     if n==2:
@@ -150,7 +150,7 @@ def main():
             led_door_sol.value(1)
             lcd_change_line("Superwash started", 0)
             do_super_wash()
-            n=n+1
+            n=n+1 #adds 1 to cycle count
             check_count()
             lcd_change_line("Ready", 0)
         elif reg_wash.value():
