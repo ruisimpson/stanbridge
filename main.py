@@ -1,8 +1,8 @@
 import machine
 import utime
-from picoplay import lcd_lines, lcd_change_line  # Functions for writing to multiple lines with lcd
+from picoplay import lcd_change_line  # Functions for writing to multiple lines with lcd
 from machine import I2C
-from pico_i2c_lcd import I2cLcd
+from pico_i2c_lcd import I2cLcd  # Interfacing with the LCD
 from program_v1 import wait_update, wait_update_ms  # Functions for waiting whilst updating the temperature reading
 
 n = 0
@@ -37,13 +37,13 @@ def update():  # Writes the "temperature" to the lcd
         led_cold_water.value(1)
 
 
-def wait_update(time_s):  # Time must be integer. Updates the temperature while idle
+def wait_update(time_s: int):  # Time must be integer. Updates the temperature while idle
     for _ in range(time_s * 10):
         update()
         utime.sleep_ms(100)
 
 
-def wait_update_ms(time_ms):  # For wait times < 1s
+def wait_update_ms(time_ms: int):  # For wait times < 1s
     for _ in range(time_ms // 100):
         update()
         if float_switch.value():
@@ -53,23 +53,34 @@ def wait_update_ms(time_ms):  # For wait times < 1s
         utime.sleep_ms(100)
 
 
-def check_count():
-    global file_count, time
-
+def update_cycle_count(cycle_count: int):  # input the new cycle count
     file_count = open("count.txt", "w")  # creates file
     file_count.write("Number of cycles is: ")  # records n value
-    file_count.write(str(n))
+    file_count.write(str(cycle_count))
     file_count.flush()
-    if n == 2:
+    if cycle_count == 14:
         time = utime.localtime()  # records time when first service warning is given
         file_errors.write(". Service warning given on ")  # puts service warning in log
         file_errors.write("{year:>04d}/{month:>02d}/{day:>02d} {HH:>02d}:{MM:>02d}:{SS:>02d}".format(
             year=time[0], month=time[1], day=time[2],
             HH=time[3], MM=time[4], SS=time[5]))  # with time
-        file_errors.flush()
-    if n > 1:
+        file_errors.close()
+    if cycle_count > 15:
         lcd_change_line("Unit needs servicing", 0)  # puts service warning on LCD after more than 1 press
         wait_update(3)
+    file_count.close()
+
+
+def read_count() -> int:
+    f_count = open("count.txt", "r")
+    current_cycle_count = int(f_count.readline().split()[4])  # reading and saving the cycle count from the file
+    f_count.close()
+    return current_cycle_count
+
+
+def print_cycle_count(current_cycle_count: int):
+    lcd_change_line("Cycle count: " + str(current_cycle_count), 0)
+    wait_update(2)
 
 
 def hold_for_water():
@@ -78,8 +89,8 @@ def hold_for_water():
         wait_update_ms(100)
 
 
-def check_door(door_locked):
-    if foot_switch.value() == 1 and not door_locked:
+def check_door() -> bool:
+    if foot_switch.value() == 1:
         led_door_sol.value(1)
         return True
     else:
@@ -150,7 +161,6 @@ def do_reg_wash():
         wait_update_ms(200)
         led_main_pump.value(0)
         wait_update_ms(200)
-
     lcd_change_line("Heating steam", 0)
     while temperature.read_u16() // 700 + 20 < 85:  # checking chamber temp to see if it is disinfecting yet
         wait_update_ms(100)
@@ -167,23 +177,18 @@ def do_reg_wash():
     lcd_change_line("Door Unlocked", 0)
 
 
-
 def main():
-    global n
     door_closed = True  # Fake initial state of door so code may be run
     lcd_change_line("Ready", 0)
     while True:
         if super_wash.value():
             if door_closed:
-                door_locked = True
                 led_door_sol.value(1)
                 lcd_change_line("Superwash", 0)
                 do_super_wash()
-                door_locked = False
-                while not check_door(door_locked):
+                while not check_door():
                     update()
-                    n += 1  # adds 1 to cycle count
-                check_count()
+                update_cycle_count(read_count() + 1)  # Updates the cycle count to the previous count + 1
                 lcd_change_line("Ready", 0)
             else:
                 lcd_change_line("DOOR NOT SHUT", 0)
@@ -191,16 +196,13 @@ def main():
                 lcd_change_line("Ready", 0)
         elif reg_wash.value():
             if door_closed:
-                door_locked = True
                 led_door_sol.value(1)
                 lcd_change_line("Regular Wash", 0)
                 do_reg_wash()
-                door_locked = False
                 wait_update(1)
-                while not check_door(door_locked):
+                while not check_door():
                     update()
-                n += 1
-                check_count()
+                update_cycle_count(read_count() + 1)  # Updates the cycle count to the previous count + 1
                 lcd_change_line("Ready", 0)
             else:
                 lcd_change_line("DOOR NOT SHUT", 0)
@@ -210,4 +212,7 @@ def main():
 
 
 if __name__ == "__main__":
+    print_cycle_count(read_count())     # Demonstrating how the machine will remember cycle counts
+    update_cycle_count(read_count() + 1)    # Increasing cycle count
+    print_cycle_count(read_count())
     main()

@@ -16,7 +16,9 @@ What voltages do we need to power each of the components?
 
 -Overflow sensor
 -Door open closed (on display)
--Finish code
--Implement logging on txt file
--Door should not open above 60C
--Why are "file" and "time" global variables
+-Why are "file" and "time" global variables	
+
+aaron@stanbridge.co.uk
+
+halfway progress report/poster
+talk to jordan
