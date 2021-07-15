@@ -91,7 +91,7 @@ def update_cycle_count(cycle_count: int):  # input the new cycle count
     file_count.write(str(cycle_count))
     file_count.flush()
     if cycle_count == 14:
-        time = utime.localtime()  # records time when first service warning is given
+        time = time.localtime()  # records time when first service warning is given
         file_errors.write(". Service warning given on ")  # puts service warning in log
         file_errors.write("{year:>04d}/{month:>02d}/{day:>02d} {HH:>02d}:{MM:>02d}:{SS:>02d}".format(
             year=time[0], month=time[1], day=time[2],
@@ -138,7 +138,7 @@ def disinfect():
             wait_update(1)
             lcd_change_line("Heating steam", 0)
             file_errors.write(". Low temperature warning ")  # puts service warning in log
-            time_low_temp = utime.localtime()  # records time when first service warning is given
+            time_low_temp = time.localtime()  # records time when first service warning is given
             file_errors.write("{year:>04d}/{month:>02d}/{day:>02d} {HH:>02d}:{MM:>02d}:{SS:>02d}".format(
                 year=time_low_temp[0], month=time_low_temp[1], day=time_low_temp[2],
                 HH=time_low_temp[3], MM=time_low_temp[4], SS=time_low_temp[5]))  # with time
@@ -151,7 +151,7 @@ def disinfect():
             lcd_change_line("ERROR: HIGH TEMP", 0)
             wait_update(1)
             file_errors.write(". High temperature warning given ")  # puts service warning in log
-            time_high_temp = utime.localtime()  # records time when first service warning is given
+            time_high_temp = time.localtime()  # records time when first service warning is given
             file_errors.write("{year:>04d}/{month:>02d}/{day:>02d} {HH:>02d}:{MM:>02d}:{SS:>02d}".format(
                 year=time_high_temp[0], month=time_high_temp[1], day=time_high_temp[2],
                 HH=time_high_temp[3], MM=time_high_temp[4], SS=time_high_temp[5]))  # with time
