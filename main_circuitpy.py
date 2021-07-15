@@ -2,6 +2,8 @@ import board
 import time
 import busio
 from digitalio import DigitalInOut, Direction, Pull
+from analogio import AnalogIn
+
 
 from picoplay import lcd_change_line  # Functions for writing to multiple lines with lcd
 from machine import I2C
@@ -60,17 +62,17 @@ if __name__ == "__main__":  # Ignore this if statement, just useful for easy imp
     foot_switch.direction = Direction.INPUT
     foot_switch.pull = Pull.UP
    
-   temperature = machine.ADC(machine.Pin(26))  # adc for pentiometer to simulate temperature
-
+    # adc for pentiometer to simulate temperature
+   temperature = AnalogIn(board.A26)
 
 def update():  # Writes the "temperature" to the lcd. Takes 207.6 (+-0.1%) ms to update
     lcd_change_line("Temperature: " + str(temperature.read_u16() // 700 + 20) + "C", 1)  # updating the temperature
-    if temperature.read_u16() // 700 + 20 > 110:  # IRL 120, temperature limited
-        led_steam_gen.value(0)
-    if float_switch.value():  # updates the cold water valve to the float switch
-        led_cold_water.value(0)
+    if temperature.read_u16() // 700 + 20 > 110:  # IRL 120, temperature limited # Might need to change read_u16 for circuitPY
+        led_steam_gen.value=False
+    if not float_switch.value==1:  # updates the cold water valve to the float switch
+        led_cold_water.value=False
     else:
-        led_cold_water.value(1)
+        led_cold_water.value=True
 
 
 def wait_update(time_s: int):  # Time must be integer. Updates the temperature while idle
@@ -94,11 +96,11 @@ def update_cycle_count(cycle_count: int):  # input the new cycle count
         file_errors.write("{year:>04d}/{month:>02d}/{day:>02d} {HH:>02d}:{MM:>02d}:{SS:>02d}".format(
             year=time[0], month=time[1], day=time[2],
             HH=time[3], MM=time[4], SS=time[5]))  # with time
-        file_errors.close()
+        file_errors.flush()
     if cycle_count > 15:
         lcd_change_line("Unit needs servicing", 0)  # puts service warning on LCD after more than 1 press
         wait_update(3)
-    file_count.close()
+    file_count.flush()
 
 
 def read_count() -> int:
@@ -115,16 +117,16 @@ def print_cycle_count(current_cycle_count: int):
 
 def hold_for_water():
     lcd_change_line("Holding for water", 0)
-    while not float_switch.value():  # checking main tank is full of (cold) water
+    while  float_switch.value==1:  # checking main tank is full of (cold) water
         update()
 
 
 def check_door() -> bool:
-    if foot_switch.value() == 1:
-        led_door_sol.value(1)
+    if not foot_switch.value == 1:
+        led_door_sol.value=True
         return True
     else:
-        led_door_sol.value(0)
+        led_door_sol.value=False
         return False
 
 
@@ -155,50 +157,50 @@ def disinfect():
                 HH=time_high_temp[3], MM=time_high_temp[4], SS=time_high_temp[5]))  # with time
             file_errors.flush()
             lcd_change_line("COOLING", 0)
-            led_steam_gen.value(0)
+            led_steam_gen.value=False
             while temperature.read_u16() // 700 + 20 > 90:  # let chamber cool until it is <90C
                 update()
-            led_steam_gen.value(1)
+            led_steam_gen.value=False
             disinfect()
             break
         update()
-    led_steam_gen.value(0)
+    led_steam_gen.value=False
 
 
 def do_super_wash():
     wait_update(1)
-    led_door_sol.value(0)
+    led_door_sol.value=False
     hold_for_water()
     lcd_change_line("Washing", 0)
-    led_main_pump.value(1)
+    led_main_pump.value=True
     wait_update(4)  # 30 seconds IRL
-    led_main_pump.value(0)
+    led_main_pump.value=False
     do_reg_wash()
 
 
 def do_reg_wash():
     wait_update(1)
-    led_door_sol.value(0)
+    led_door_sol.value=False
     hold_for_water()
     lcd_change_line("Washing", 0)
-    led_main_pump.value(1)
-    led_steam_gen.value(1)
-    led_dosing_pump.value(1)
+    led_main_pump.value=True
+    led_steam_gen.value=True
+    led_dosing_pump.value=True
     wait_update(3)  # is this timing correct? Unsure IRL time
-    led_dosing_pump.value(0)
+    led_dosing_pump.value=False
     for _ in range(8):  # Pulsing the pump
-        led_main_pump.value(1)
+        led_main_pump.value=True
         wait_update_ms(200)
-        led_main_pump.value(0)
+        led_main_pump.value=False
         wait_update_ms(200)
     lcd_change_line("Heating steam", 0)
     while temperature.read_u16() // 700 + 20 < 85:  # checking chamber temp to see if it is disinfecting yet
         update()
     disinfect()
-    led_steam_gen.value(0)
+    led_steam_gen.value=False
     hold_for_water()
     lcd_change_line("Rinsing", 0)
-    led_main_pump.value(1)
+    led_main_pump.value=True
     wait_update(2)  # 5-10 seconds IRL
     led_main_pump.value(0)
     lcd_change_line("Chamber cooling", 0)
@@ -211,9 +213,9 @@ def main():
     door_closed = True  # Fake initial state of door so code may be run
     lcd_change_line("Ready", 0)
     while True:
-        if super_wash.value():
+        if not super_wash.value==1:
             if door_closed:
-                led_door_sol.value(1)
+                led_door_sol.value=True
                 lcd_change_line("Superwash", 0)
                 do_super_wash()
                 while not check_door():
@@ -224,9 +226,9 @@ def main():
                 lcd_change_line("DOOR NOT SHUT", 0)
                 wait_update(1)
                 lcd_change_line("Ready", 0)
-        elif reg_wash.value():
+        elif not reg_wash.value==1:
             if door_closed:
-                led_door_sol.value(1)
+                led_door_sol.value=True
                 lcd_change_line("Regular Wash", 0)
                 do_reg_wash()
                 wait_update(1)
