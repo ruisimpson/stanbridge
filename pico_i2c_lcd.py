@@ -1,8 +1,7 @@
-import utime
+import time
 import gc
 
 from lcd_api import LcdApi
-from machine import I2C
 
 # PCF8574 pin definitions
 MASK_RS = 0x01       # P0
@@ -20,17 +19,17 @@ class I2cLcd(LcdApi):
         self.i2c = i2c
         self.i2c_addr = i2c_addr
         self.i2c.writeto(self.i2c_addr, bytes([0]))
-        utime.sleep_ms(20)   # Allow LCD time to powerup
+        time.sleep_ms(20)   # Allow LCD time to powerup
         # Send reset 3 times
         self.hal_write_init_nibble(self.LCD_FUNCTION_RESET)
-        utime.sleep_ms(5)    # Need to delay at least 4.1 msec
+        time.sleep_ms(5)    # Need to delay at least 4.1 msec
         self.hal_write_init_nibble(self.LCD_FUNCTION_RESET)
-        utime.sleep_ms(1)
+        time.sleep_ms(1)
         self.hal_write_init_nibble(self.LCD_FUNCTION_RESET)
-        utime.sleep_ms(1)
+        time.sleep_ms(1)
         # Put LCD into 4-bit mode
         self.hal_write_init_nibble(self.LCD_FUNCTION)
-        utime.sleep_ms(1)
+        time.sleep_ms(1)
         LcdApi.__init__(self, num_lines, num_columns)
         cmd = self.LCD_FUNCTION
         if num_lines > 1:
@@ -68,7 +67,7 @@ class I2cLcd(LcdApi):
         self.i2c.writeto(self.i2c_addr, bytes([byte]))
         if cmd <= 3:
             # The home and clear commands require a worst case delay of 4.1 msec
-            utime.sleep_ms(5)
+            time.sleep_ms(5)
         gc.collect()
 
     def hal_write_data(self, data):

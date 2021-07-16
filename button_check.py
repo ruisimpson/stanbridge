@@ -2,12 +2,28 @@ import time
 import board
 import busio
 from digitalio import DigitalInOut, Direction, Pull
+import hd44780
+
+#from adafruit_esp32spi import adafruit_esp32spi
+#from adafruit_esp32spi import adafruit_esp32spi_wifimanager
+
+lcd = hd44780.HD44780(busio.I2C(board.GP1,board.GP0), address=0x27)
+cols = 20
+rows = 4
+lcd.write("BEN", 1)
+lcd.write("IT", 2)
+lcd.write("WORKS", 3)
+lcd.write("IN CIRCUITPYTHON", 4)
+time.sleep(1)
+lcd.backlight(True)
+time.sleep(1)
+lcd.backlight(False)
+time.sleep(1)
+lcd.backlight(True)
 
 
-from adafruit_esp32spi import adafruit_esp32spi
-from adafruit_esp32spi import adafruit_esp32spi_wifimanager
-
-print("ESP32 SPI webclient test")
+time.sleep(5)
+#print("ESP32 SPI webclient test")
 
 # Get wifi details and more from a secrets.py file
 try:

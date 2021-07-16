@@ -3,16 +3,15 @@ import time
 import busio
 from digitalio import DigitalInOut, Direction, Pull
 from analogio import AnalogIn
+import hd44780
 
-
-from picoplay import lcd_change_line  # Functions for writing to multiple lines with lcd
-from machine import I2C
-from pico_i2c_lcd import I2cLcd  # Interfacing with the LCD
-from program_v1 import wait_update, wait_update_ms  # Functions for waiting whilst updating the temperature reading
+#from picoplay import lcd_change_line  # Functions for writing to multiple lines with lcd
+#from machine import I2C
+#from pico_i2c_lcd import I2cLcd  # Interfacing with the LCD
 
 n = 0
 
-file_errors = open("errors.txt", "w")
+#file_errors = open("errors.txt", "w")
 
 if __name__ == "__main__":  # Ignore this if statement, just useful for easy importing of this file as a module
     # outputs (numbered from pico end down)
@@ -34,36 +33,34 @@ if __name__ == "__main__":  # Ignore this if statement, just useful for easy imp
     led_door_sol.direction = Direction.OUTPUT
     
      # blue led 2
-    led_dosing_pump=DigitalInOut(board.GP8)
+    led_dosing_pump=DigitalInOut(board.GP20)
     led_dosing_pump.direction = Direction.OUTPUT
+        
+    lcd = hd44780.HD44780(busio.I2C(board.GP1,board.GP0), address=0x27)  # (i2c, address, rows, columns) for lcd
     
-    i2c = I2C(0, sda=machine.Pin(0), scl=machine.Pin(1), freq=400000)
-    
-    lcd = I2cLcd(i2c, 0x27, 2, 16)  # (i2c, address, rows, columns) for lcd
-
     # inputs (numbered from pico end down)
      # button 1
-    super_wash= DigitalInOut(board.GP12)
+    super_wash = DigitalInOut(board.GP3)
     super_wash.direction = Direction.INPUT
     super_wash.pull = Pull.DOWN
     
       # button 2
-    reg_wash = DigitalInOut(board.GP12)
+    reg_wash = DigitalInOut(board.GP4)
     reg_wash.direction = Direction.INPUT
-    red_wash.pull = Pull.DOWN
+    reg_wash.pull = Pull.DOWN
     
       # button 3
-    float_switch = DigitalInOut(board.GP10)
+    float_switch = DigitalInOut(board.GP5)
     float_switch.direction = Direction.INPUT
-    float_switch = Pull.DOWN
+    float_switch.pull = Pull.DOWN
     
      # button 4
-    foot_switch = DigitalInOut(board.GP9)
+    foot_switch = DigitalInOut(board.GP6)
     foot_switch.direction = Direction.INPUT
     foot_switch.pull = Pull.DOWN
    
     # adc for pentiometer to simulate temperature
-   temperature = AnalogIn(board.A26)
+    temperature = AnalogIn(board.GP26)
 
 def update():  # Writes the "temperature" to the lcd. Takes 207.6 (+-0.1%) ms to update
     lcd_change_line("Temperature: " + str(temperature.read_u16() // 700 + 20) + "C", 1)  # updating the temperature
@@ -244,8 +241,20 @@ def main():
 
 
 if __name__ == "__main__":
-    print_cycle_count(read_count())     # Demonstrating how the machine will remember cycle counts
-    update_cycle_count(read_count() + 1)    # Increasing cycle count
-    print_cycle_count(read_count())
-    main()
+    #print_cycle_count(read_count())     # Demonstrating how the machine will remember cycle counts
+    #update_cycle_count(read_count() + 1)    # Increasing cycle count
+    #print_cycle_count(read_count())
+    lcd.write("Testing inputs", 1)
+    led_steam_gen.value = True
+    led_cold_water.value = True
+    led_door_sol.value = True
+    led_dosing_pump.value = True
+    while True:
+        print("super wash value: " + str(super_wash.value))
+        print("reg wash value: " + str(reg_wash.value))
+        print("float switch value: " + str(float_switch.value))
+        print("foot switch value: " + str(foot_switch.value))
+        print("temperature: " + str(temperature.value))
+        time.sleep(0.1)
+    #main()
 

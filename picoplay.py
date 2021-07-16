@@ -6,8 +6,8 @@ from lcd_api import LcdApi
 from pico_i2c_lcd import I2cLcd
 
 I2C_ADDR     = 0x27
-I2C_NUM_ROWS = 2
-I2C_NUM_COLS = 16
+I2C_NUM_ROWS = 4
+I2C_NUM_COLS = 20
 
 #outputs
 led_onboard = machine.Pin(25, machine.Pin.OUT)
@@ -20,24 +20,26 @@ button_1 = machine.Pin(14, machine.Pin.IN, machine.Pin.PULL_DOWN)
 
 
 def lcd_lines(message1, message2):
-    line1 = message1[:16] + (16-len(message1)) * ' '
+    line1 = message1[:20] + (20-len(message1)) * ' '
     lcd.clear()
     lcd.putstr(line1)
     lcd.putstr(message2)
 
+
 def lcd_change_line(message1, linenumber):
     if linenumber == 0:
-        lcd.move_to(0,0)
-        for char in message1[:16]:
+        lcd.move_to(0, 0)
+        for char in message1[:20]:
             lcd.putchar(char)
-        lcd.putstr(' ' * (16-len(message1[:16])))
+        lcd.putstr(' ' * (20-len(message1[:16])))
     elif linenumber == 1:
-        lcd.move_to(0,1)
-        for char in message1[:16]:
+        lcd.move_to(0, 1)
+        for char in message1[:20]:
             lcd.putchar(char)
-        lcd.putstr(' ' * (16-len(message1[:16])))
+        lcd.putstr(' ' * (16-len(message1[:20])))
     else:
         print("Invalid line number")
+
 
 def button_pressed_thread():
     global button_pressed
@@ -60,4 +62,4 @@ if __name__ == "__main__":
             utime.sleep(0.5)
             led_1_external.toggle()
             button_pressed = False
-        
+
