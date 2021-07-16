@@ -45,22 +45,22 @@ if __name__ == "__main__":  # Ignore this if statement, just useful for easy imp
      # button 1
     super_wash= DigitalInOut(board.GP12)
     super_wash.direction = Direction.INPUT
-    super_wash.pull = Pull.UP
+    super_wash.pull = Pull.DOWN
     
       # button 2
     reg_wash = DigitalInOut(board.GP12)
     reg_wash.direction = Direction.INPUT
-    red_wash.pull = Pull.UP
+    red_wash.pull = Pull.DOWN
     
       # button 3
     float_switch = DigitalInOut(board.GP10)
     float_switch.direction = Direction.INPUT
-    float_switch = Pull.UP
+    float_switch = Pull.DOWN
     
      # button 4
     foot_switch = DigitalInOut(board.GP9)
     foot_switch.direction = Direction.INPUT
-    foot_switch.pull = Pull.UP
+    foot_switch.pull = Pull.DOWN
    
     # adc for pentiometer to simulate temperature
    temperature = AnalogIn(board.A26)
@@ -69,7 +69,7 @@ def update():  # Writes the "temperature" to the lcd. Takes 207.6 (+-0.1%) ms to
     lcd_change_line("Temperature: " + str(temperature.read_u16() // 700 + 20) + "C", 1)  # updating the temperature
     if temperature.read_u16() // 700 + 20 > 110:  # IRL 120, temperature limited # Might need to change read_u16 for circuitPY
         led_steam_gen.value=False
-    if not float_switch.value==1:  # updates the cold water valve to the float switch
+    if float_switch.value==1:  # updates the cold water valve to the float switch
         led_cold_water.value=False
     else:
         led_cold_water.value=True
@@ -122,7 +122,7 @@ def hold_for_water():
 
 
 def check_door() -> bool:
-    if not foot_switch.value == 1:
+    if foot_switch.value == 1:
         led_door_sol.value=True
         return True
     else:
@@ -213,7 +213,7 @@ def main():
     door_closed = True  # Fake initial state of door so code may be run
     lcd_change_line("Ready", 0)
     while True:
-        if not super_wash.value==1:
+        if super_wash.value==1:
             if door_closed:
                 led_door_sol.value=True
                 lcd_change_line("Superwash", 0)
@@ -226,7 +226,7 @@ def main():
                 lcd_change_line("DOOR NOT SHUT", 0)
                 wait_update(1)
                 lcd_change_line("Ready", 0)
-        elif not reg_wash.value==1:
+        elif reg_wash.value==1:
             if door_closed:
                 led_door_sol.value=True
                 lcd_change_line("Regular Wash", 0)
