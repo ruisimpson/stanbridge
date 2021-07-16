@@ -12,18 +12,18 @@ file_errors = open("errors.txt", "w")
 if __name__ == "__main__":  # Ignore this if statement, just useful for easy importing of this file as a module
     # outputs (numbered from pico end down)
     led_main_pump = machine.Pin(25, machine.Pin.OUT)  # onboard led
-    led_steam_gen = machine.Pin(15, machine.Pin.OUT)  # red led
-    led_cold_water = machine.Pin(14, machine.Pin.OUT)  # blue led 1
+    led_steam_gen = machine.Pin(14, machine.Pin.OUT)  # red led
+    led_cold_water = machine.Pin(15, machine.Pin.OUT)  # blue led 1
     led_door_sol = machine.Pin(13, machine.Pin.OUT)  # green led
-    led_dosing_pump = machine.Pin(8, machine.Pin.OUT)  # blue led 2
+    led_dosing_pump = machine.Pin(21, machine.Pin.OUT)  # blue led 2
     i2c = I2C(0, sda=machine.Pin(0), scl=machine.Pin(1), freq=400000)
     lcd = I2cLcd(i2c, 0x27, 2, 16)  # (i2c, address, rows, columns) for lcd
 
     # inputs (numbered from pico end down)
-    super_wash = machine.Pin(12, machine.Pin.IN, machine.Pin.PULL_DOWN)  # button 1
-    reg_wash = machine.Pin(11, machine.Pin.IN, machine.Pin.PULL_DOWN)  # button 2
+    super_wash = machine.Pin(4, machine.Pin.IN, machine.Pin.PULL_DOWN)  # button 1
+    reg_wash = machine.Pin(6, machine.Pin.IN, machine.Pin.PULL_DOWN)  # button 2
     float_switch = machine.Pin(10, machine.Pin.IN, machine.Pin.PULL_DOWN)  # button 3
-    foot_switch = machine.Pin(9, machine.Pin.IN, machine.Pin.PULL_DOWN)  # button 4
+    foot_switch = machine.Pin(3, machine.Pin.IN, machine.Pin.PULL_DOWN)  # button 4
     temperature = machine.ADC(machine.Pin(26))  # adc for pentiometer to simulate temperature
 
 
