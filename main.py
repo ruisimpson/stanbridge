@@ -17,15 +17,15 @@ if __name__ == "__main__":  # Ignore this if statement, just useful for easy imp
     led_door_sol = machine.Pin(13, machine.Pin.OUT)  # green led
     led_dosing_pump = machine.Pin(21, machine.Pin.OUT)  # blue led 2
     i2c = I2C(0, sda=machine.Pin(0), scl=machine.Pin(1), freq=400000)
-    lcd = I2cLcd(i2c, 0x27, 2, 16)  # (i2c, address, rows, columns) for lcd
+    lcd = I2cLcd(i2c, 0x27, 4, 20)  # (i2c, address, rows, columns) for lcd
 
     # inputs (numbered from pico end down)
     super_wash = machine.Pin(4, machine.Pin.IN, machine.Pin.PULL_DOWN)  # button 1
     reg_wash = machine.Pin(6, machine.Pin.IN, machine.Pin.PULL_DOWN)  # button 2
-    float_switch = machine.Pin(10, machine.Pin.IN, machine.Pin.PULL_DOWN)  # button 3
+    float_switch = machine.Pin(5, machine.Pin.IN, machine.Pin.PULL_DOWN)  # button 3
     foot_switch = machine.Pin(3, machine.Pin.IN, machine.Pin.PULL_DOWN)  # button 4
     temperature = machine.ADC(machine.Pin(26))  # adc for pentiometer to simulate temperature
-
+    microswitch = machine.Pin(12, machine.Pin.IN, machine.Pin.PULL_UP)
 
 def update():  # Writes the "temperature" to the lcd. Takes 207.6 (+-0.1%) ms to update
     lcd_change_line("Temperature: " + str(temperature.read_u16() // 700 + 20) + "C", 1)  # updating the temperature
@@ -35,6 +35,8 @@ def update():  # Writes the "temperature" to the lcd. Takes 207.6 (+-0.1%) ms to
         led_cold_water.value(0)
     else:
         led_cold_water.value(1)
+    if microswitch.value():
+        pass
 
 
 def wait_update(time_s: int):  # Time must be integer. Updates the temperature while idle
