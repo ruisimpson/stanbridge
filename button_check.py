@@ -14,23 +14,23 @@ lcd.write("BEN", 1)
 lcd.write("IT", 2)
 lcd.write("WORKS", 3)
 lcd.write("IN CIRCUITPYTHON", 4)
-time.sleep(1)
-lcd.backlight(True)
-time.sleep(1)
-lcd.backlight(False)
-time.sleep(1)
-lcd.backlight(True)
+#time.sleep(1)
+#lcd.backlight(True)
+#time.sleep(1)
+#lcd.backlight(False)
+#time.sleep(1)
+#lcd.backlight(True)
 
 
-time.sleep(5)
+#time.sleep(5)
 #print("ESP32 SPI webclient test")
 
 # Get wifi details and more from a secrets.py file
-try:
-    from secrets import secrets
-except ImportError:
-    print("WiFi secrets are kept in secrets.py, please add them there!")
-    raise
+#try:
+#    from secrets import secrets
+#except ImportError:
+#    print("WiFi secrets are kept in secrets.py, please add them there!")
+#    raise
 
 esp32_cs = DigitalInOut(board.GP7)
 esp32_ready = DigitalInOut(board.GP10)
@@ -40,17 +40,20 @@ led=DigitalInOut(board.GP25)
 led.direction = Direction.OUTPUT
 
 spi = busio.SPI(board.GP18, board.GP19, board.GP16)
-esp = adafruit_esp32spi.ESP_SPIcontrol(spi, esp32_cs, esp32_ready, esp32_reset)
+#esp = adafruit_esp32spi.ESP_SPIcontrol(spi, esp32_cs, esp32_ready, esp32_reset)
 
 
-wifi = adafruit_esp32spi_wifimanager.ESPSPI_WiFiManager(esp, secrets)
+#wifi = adafruit_esp32spi_wifimanager.ESPSPI_WiFiManager(esp, secrets)
 
 counter = 0
 btn = DigitalInOut(board.GP12)
 btn.direction = Direction.INPUT
 btn.pull = Pull.UP
 
-
+while btn.value:
+    print("why doesn't this button work")
+    time.sleep(0.1)
+print("this button bloody works")
 while True:
     if not btn.value==1:
         print("BTN is down")

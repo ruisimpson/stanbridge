@@ -18,27 +18,27 @@ n = 0
 if __name__ == "__main__":  # Ignore this if statement, just useful for easy importing of this file as a module
     # outputs (numbered from pico end down)
     
-     # onboard led
-    led_main_pump = DigitalInOut(board.GP25)
-    led_main_pump.direction = Direction.OUTPUT
+     # Main Pump
+    main_pump = DigitalInOut(board.GP17)      #True = off, False = on
+    main_pump.direction = Direction.OUTPUT
+    main_pump.value = True
     
-      # red led
-    led_steam_gen = DigitalInOut(board.GP15)
-    led_steam_gen.direction = Direction.OUTPUT
+      # Steam Generator
+    steam_gen = DigitalInOut(board.GP15)       #True = off, False = on
+    steam_gen.direction = Direction.OUTPUT
+    steam_gen.value = True
     
-     # blue led 1
-    led_cold_water = DigitalInOut(board.GP14)
-    led_cold_water.direction = Direction.OUTPUT
+      # Door Solenoid
+    door_sol = DigitalInOut(board.GP13)         #True = off, False = on
+    door_sol.direction = Direction.OUTPUT
+    door_sol.value = True
     
-      # green led
-    led_door_sol = DigitalInOut(board.GP13)
-    led_door_sol.direction = Direction.OUTPUT
-    
-     # blue led 2
-    led_dosing_pump=DigitalInOut(board.GP20)
-    led_dosing_pump.direction = Direction.OUTPUT
+     # Dosing pump
+    dosing_pump=DigitalInOut(board.GP21)
+    dosing_pump.direction = Direction.OUTPUT
+    dosing_pump.value = False
         
-    lcd = hd44780.HD44780(busio.I2C(board.GP1,board.GP0), address=0x27)  # (i2c, address, rows, columns) for lcd
+    #lcd = hd44780.HD44780(busio.I2C(board.GP1,board.GP0), address=0x27)  # (i2c, address, rows, columns) for lcd
     
     # inputs (numbered from pico end down)
      # button 1
@@ -51,18 +51,18 @@ if __name__ == "__main__":  # Ignore this if statement, just useful for easy imp
     reg_wash.direction = Direction.INPUT
     reg_wash.pull = Pull.DOWN
     
-      # button 3
+      # Float switch
     float_switch = DigitalInOut(board.GP5)
     float_switch.direction = Direction.INPUT
     float_switch.pull = Pull.DOWN
     
-     # button 4
+     # Foot switch
     foot_switch = DigitalInOut(board.GP6)
     foot_switch.direction = Direction.INPUT
     foot_switch.pull = Pull.DOWN
     
-    #button wifi
-    door_microswitch = DigitalInOut(board.GP12)
+    # Door microswitch (Checks status of door, open=True or closed=False)
+    door_microswitch = DigitalInOut(board.GP16)
     door_microswitch.direction = Direction.INPUT
     door_microswitch.pull = Pull.UP
    
@@ -70,28 +70,35 @@ if __name__ == "__main__":  # Ignore this if statement, just useful for easy imp
     temperature = AnalogIn(board.GP26)
 
 def write_clear(message : str, linenumber : int):
-    lcd.write(message + " " * (20 - len(message)), linenumber)
+    #lcd.write(message + " " * (20 - len(message)), linenumber)
+    return 0
     
     
 def update():  # Writes the "temperature" to the lcd. Takes 207.6 (+-0.1%) ms to update
     write_clear("Temperature: " + str(temperature.value // 700 + 20) + "C", 2)  # updating the temperature
     if temperature.value // 700 + 20 > 110:  # IRL 120, temperature limited # Might need to change read_u16 for circuitPY
-        led_steam_gen.value=False
-    if float_switch.value:  # updates the cold water valve to the float switch
-        led_cold_water.value=False
-    else:
-        led_cold_water.value=True
-    if door_microswitch.value:
+        steam_gen.value=True
+    if not door_microswitch.value:
         write_clear("Door closed", 3)
     else:
         write_clear("Door open", 3)
 
 
-def wait_update(time_s : float) -> float: # Should accurately time within 200ms. Will always time for too long
-    start_time = time.monotonic()
-    while time.monotonic() < start_time + time_s:   # Loops the update() until inputted time has elapsed
+# def wait_update(time_s: int):  # Time must be integer. Updates the temperature while idle CLEVER WAY OF DOING IT???????? BY WAITING UNTIL TIME = TIME+X
+#     for _ in range(time_s * 5):
+#         update()               # Assuming update time of ~200 ms
+
+
+def wait_update(time_s : int):
+    start_time = time.time()
+    while time.time() < start_time + time_s:   # Loops the update() until inputted time has elapsed
         update()
-    return time.monotonic() - start_time # Returns the actual elapsed time (For validating the accuracy)
+    
+    
+def wait_update_ms(time_ms: int):  # For wait times < 1s
+    for _ in range(time_ms // 200):
+        update()
+
 
 def update_cycle_count(cycle_count: int):  # input the new cycle count
     file_count = open("count.txt", "w")  # creates file
@@ -124,34 +131,33 @@ def print_cycle_count(current_cycle_count: int):
 
 def hold_for_water():
     write_clear("Holding for water", 1)
-    while not float_switch.value:  # checking main tank is full of (cold) water
+    while float_switch.value:  # checking main tank is full of (cold) water
         update()
 
 
 def check_door() -> bool:
-    if foot_switch.value == 1:
-        led_door_sol.value=True
+    if not foot_switch.value:
+        door_sol.value=True
         return True
     else:
-        led_door_sol.value=False
+        door_sol.value=False
         return False
-
+    
 
 def door_checker():
-    if foot_switch.value:
-        door_sol.value = True
-#        while not door_microswitch.value:   # waits for door to have opened to stop door solenoid
-#            time.sleep(0.01)
-        wait_update(0.200)
+    if not foot_switch.value:
         door_sol.value = False
-
+        while not door_microswitch.value:
+            time.sleep(0.01)
+        door_sol.value = True
+        
 
 def disinfect():
     write_clear("Disinfecting", 1)
-    for _ in range(50):  # 70 seconds IRL
-        if temperature.value // 700 + 20 < 85:  # check chamber temp
+    for _ in range(70):  # 70 seconds IRL
+        if temperature.value // 700 + 20 < 80:  # check chamber temp
             write_clear("ERROR: LOW TEMP", 1)
-            wait_update(1)
+            wait_update_ms(1000)
             write_clear("Heating steam", 1)
 #            file_errors.write(". Low temperature warning ")  # puts service warning in log
 #            time_low_temp = time.localtime()  # records time when first service warning is given
@@ -159,13 +165,13 @@ def disinfect():
 #                year=time_low_temp[0], month=time_low_temp[1], day=time_low_temp[2],
 #                HH=time_low_temp[3], MM=time_low_temp[4], SS=time_low_temp[5]))  # with time
 #            file_errors.flush()
-            while temperature.value // 700 + 20 < 85:  # wait for chamber temp
+            while temperature.value // 700 + 20 < 80:  # wait for chamber temp
                 update()
             disinfect()  # recursively retry cycle
             break
-        if temperature.value // 700 + 20 > 110:  # check chamber temp
+        if temperature.value // 700 + 20 > 95:  # check chamber temp
             write_clear("ERROR: HIGH TEMP", 1)
-            wait_update(1)
+            wait_update_ms(1000)
 #            file_errors.write(". High temperature warning given ")  # puts service warning in log
 #            time_high_temp = time.localtime()  # records time when first service warning is given
 #            file_errors.write("{year:>04d}/{month:>02d}/{day:>02d} {HH:>02d}:{MM:>02d}:{SS:>02d}".format(
@@ -173,52 +179,49 @@ def disinfect():
 #                HH=time_high_temp[3], MM=time_high_temp[4], SS=time_high_temp[5]))  # with time
 #            file_errors.flush()
             write_clear("COOLING", 1)
-            led_steam_gen.value=False
+            steam_gen.value=True
             while temperature.value // 700 + 20 > 90:  # let chamber cool until it is <90C
                 update()
-            led_steam_gen.value=False
+            steam_gen.value=True
             disinfect()
             break
-        update()
-    led_steam_gen.value=False
+        wait_update_ms(1000)
+    steam_gen.value=True
 
 
 def do_super_wash():
-    wait_update(1)
-    led_door_sol.value=False
+    #door_sol.value=True
     hold_for_water()
     write_clear("Washing", 1)
-    led_main_pump.value=True
-    wait_update(4)  # 30 seconds IRL
-    led_main_pump.value=False
+    main_pump.value=False
+    wait_update(30)  # 30 seconds IRL
+    main_pump.value=True
     do_reg_wash()
 
 
 def do_reg_wash():
-    wait_update(1)
-    led_door_sol.value=False
+    #door_sol.value=True
     hold_for_water()
     write_clear("Washing", 1)
-    led_main_pump.value=True
-    led_steam_gen.value=True
-    led_dosing_pump.value=True
-    wait_update(3)  # is this timing correct? Unsure IRL time
-    led_dosing_pump.value=False
-    for _ in range(8):  # Pulsing the pump
-        led_main_pump.value=True
-        wait_update(0.200)
-        led_main_pump.value=False
-        wait_update(0.200)
+    main_pump.value=False
+    steam_gen.value=False
+    dosing_pump.value=True
+    wait_update(10)  # is this timing correct? Unsure IRL time
+    dosing_pump.value=False
+    for _ in range(12):  # Pulsing the pump
+        main_pump.value = not main_pump.value 
+        wait_update(5)
+    main_pump.value = True
     write_clear("Heating steam", 1)
-    while temperature.value // 700 + 20 < 85:  # checking chamber temp to see if it is disinfecting yet
+    while temperature.value // 700 + 20 < 80:  # checking chamber temp to see if it is disinfecting yet
         update()
     disinfect()
-    led_steam_gen.value=False
+    steam_gen.value=True
     hold_for_water()
     write_clear("Rinsing", 1)
-    led_main_pump.value=True
-    wait_update(2)  # 5-10 seconds IRL
-    led_main_pump.value=False
+    main_pump.value=False
+    wait_update(10)  # 5-10 seconds IRL
+    main_pump.value=True
     write_clear("Chamber cooling", 1)
     while temperature.value // 700 + 20 > 60:  # Waits for safe chamber temperature
         update()
@@ -226,55 +229,64 @@ def do_reg_wash():
 
 
 def main():
-    print_cycle_count(read_count())
-    door_closed = True  # Fake initial state of door so code may be run
+    print_cycle_count(read_count())  # Fake initial state of door so code may be run
     write_clear("Ready", 1)
     while True:
         if super_wash.value==1:
-            if door_closed:
-                led_door_sol.value=True
+            if not door_microswitch.value:
                 write_clear("Superwash", 1)
+                wait_update_ms(1000)
                 do_super_wash()
-                while not check_door():
+                while foot_switch.value: #checks for footpedal
                     update()
+                door_sol.value = False
+                while not door_microswitch.value:  #waits until door registers open then cancels the door solenoid
+                    time.sleep(0.01)
+                door_sol.value = True
                 print_cycle_count(read_count())
                 #update_cycle_count(read_count() + 1)  # Updates the cycle count to the previous count + 1
                 write_clear("Ready", 1)
             else:
                 write_clear("DOOR NOT SHUT", 1)
-                wait_update(1)
+                wait_update_ms(1000)
                 write_clear("Ready", 1)
         elif reg_wash.value==1:
-            if door_closed:
-                led_door_sol.value=True
+            if not door_microswitch.value:
                 write_clear("Regular Wash", 1)
+                wait_update_ms(1000)
                 do_reg_wash()
-                wait_update(1)
-                while not check_door():
+                while foot_switch.value: #checks for footpedal
                     update()
+                door_sol.value = False
+                while not door_microswitch.value:  #waits until door registers open then cancels the door solenoid
+                    time.sleep(0.01)
+                door_sol.value = True
                 print_cycle_count(read_count())
                 #update_cycle_count(read_count() + 1)  # Updates the cycle count to the previous count + 1
                 write_clear("Ready", 1)
             else:
                 write_clear("DOOR NOT SHUT", 1)
-                wait_update(1)
+                wait_update_ms(1000)
                 write_clear("Ready", 1)
+        door_checker()
         update()
+        
 
 
 if __name__ == "__main__":
-    for _ in range(10):
-        t_1 = time.monotonic()
-        print(wait_update(2))
-        print(str(time.monotonic() - t_1) + "\n")
-#     print_cycle_count(read_count())     # Demonstrating how the machine will remember cycle counts
-#     update_cycle_count(read_count() + 1)    # Increasing cycle count
-#     print_cycle_count(read_count())
-#     write_clear("Testing inputs", 1)
-#     led_steam_gen.value = True
-#     led_cold_water.value = True
-#     led_door_sol.value = True
-#     led_dosing_pump.value = True
+    main()
+    
+#main()
+#    print_cycle_count(read_count())     # Demonstrating how the machine will remember cycle counts
+#    update_cycle_count(read_count() + 1)    # Increasing cycle count
+#    print_cycle_count(read_count())
+#    write_clear("Testing inputs", 1)
+#    for i in range(10):
+        #steam_gen.value = not steam_gen.value
+        #door_sol.value = not door_sol.value
+        #dosing_pump.value = not dosing_pump.value
+        #main_pump.value = not main_pump.value
+#        time.sleep(1)
 #     while not super_wash:
 #         print("super wash value: " + str(super_wash.value))
 #         print("reg wash value: " + str(reg_wash.value))
@@ -283,8 +295,7 @@ if __name__ == "__main__":
 #         print("temperature: " + str(temperature.value))
 #     print_cycle_count(read_count())
 #     update_cycle_count(read_count() + 1)   #need to fix read-only filesystem
-#     wait_update(1)
+#     wait_update_ms(1000)
 #     print_cycle_count(read_count())
-#     time.sleep(10)
-    main()
-
+#     time.sleep(10
+#main()
