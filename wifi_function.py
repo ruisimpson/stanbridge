@@ -60,7 +60,7 @@ def post_data(data, feed_name):
     print("Retrieving data from " + feed_name + " feed")
     received_data = io.receive_data(feed["key"])
     print("Data from " + feed_name +  " feed: ", received_data["value"])
-    print()
+
     
     
 post_data('yellow','temperature')

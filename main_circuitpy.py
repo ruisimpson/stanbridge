@@ -4,6 +4,13 @@ import busio
 from digitalio import DigitalInOut, Direction, Pull
 from analogio import AnalogIn
 import hd44780
+from secrets import secrets
+import adafruit_esp32spi.adafruit_esp32spi_socket as socket
+from adafruit_esp32spi import adafruit_esp32spi
+import adafruit_requests as requests
+from adafruit_io.adafruit_io import IO_HTTP, AdafruitIO_RequestError
+from adafruit_io import adafruit_io
+
 
 #from picoplay import lcd_change_line  # Functions for writing to multiple lines with lcd
 #from machine import I2C
@@ -18,50 +25,55 @@ n = 0
 if __name__ == "__main__":  # Ignore this if statement, just useful for easy importing of this file as a module
     # outputs (numbered from pico end down)
     
-     # onboard led
+        # onboard led
     led_main_pump = DigitalInOut(board.GP25)
     led_main_pump.direction = Direction.OUTPUT
     
-      # red led
+        # red led
     led_steam_gen = DigitalInOut(board.GP15)
     led_steam_gen.direction = Direction.OUTPUT
     
-     # blue led 1
-    led_cold_water = DigitalInOut(board.GP14)
-    led_cold_water.direction = Direction.OUTPUT
-    
-      # green led
+        # green led
     led_door_sol = DigitalInOut(board.GP13)
     led_door_sol.direction = Direction.OUTPUT
     
-     # blue led 2
+        # blue led
     led_dosing_pump=DigitalInOut(board.GP20)
     led_dosing_pump.direction = Direction.OUTPUT
-        
+    
+        # LCD
     lcd = hd44780.HD44780(busio.I2C(board.GP1,board.GP0), address=0x27)  # (i2c, address, rows, columns) for lcd
     
+        # Wireless module
+    esp32_cs = DigitalInOut(board.GP7)
+    esp32_ready = DigitalInOut(board.GP10)
+    esp32_reset = DigitalInOut(board.GP11)
+
+    spi = busio.SPI(board.GP18, board.GP19, board.GP16)
+    esp = adafruit_esp32spi.ESP_SPIcontrol(spi, esp32_cs, esp32_ready, esp32_reset)
+
     # inputs (numbered from pico end down)
-     # button 1
+        # button 1
     super_wash = DigitalInOut(board.GP3)
     super_wash.direction = Direction.INPUT
     super_wash.pull = Pull.DOWN
     
-      # button 2
+        # button 2
     reg_wash = DigitalInOut(board.GP4)
     reg_wash.direction = Direction.INPUT
     reg_wash.pull = Pull.DOWN
     
-      # button 3
+        # button 3
     float_switch = DigitalInOut(board.GP5)
     float_switch.direction = Direction.INPUT
     float_switch.pull = Pull.DOWN
     
-     # button 4
+        # button 4
     foot_switch = DigitalInOut(board.GP6)
     foot_switch.direction = Direction.INPUT
     foot_switch.pull = Pull.DOWN
     
-    #button wifi
+        #button wifi
     door_microswitch = DigitalInOut(board.GP12)
     door_microswitch.direction = Direction.INPUT
     door_microswitch.pull = Pull.UP
@@ -77,10 +89,6 @@ def update():  # Writes the "temperature" to the lcd. Takes 207.6 (+-0.1%) ms to
     write_clear("Temperature: " + str(temperature.value // 700 + 20) + "C", 2)  # updating the temperature
     if temperature.value // 700 + 20 > 110:  # IRL 120, temperature limited # Might need to change read_u16 for circuitPY
         led_steam_gen.value=False
-    if float_switch.value:  # updates the cold water valve to the float switch
-        led_cold_water.value=False
-    else:
-        led_cold_water.value=True
     if door_microswitch.value:
         write_clear("Door closed", 3)
     else:
@@ -122,6 +130,57 @@ def print_cycle_count(current_cycle_count: int):
     write_clear("Cycle count: " + str(current_cycle_count), 4)
 
 
+def post_data(data, feed_name):
+    try:
+        esp.connect_AP(secrets["ssid"], secrets["password"])
+    except RuntimeError as i:
+        print("could not connect to WIFI: ", i)
+        return 0
+    print("Connected to wifi")
+    socket.set_interface(esp)
+    requests.set_socket(socket, esp)
+
+    aio_username = secrets["aio_username"]
+    aio_key = secrets["aio_key"]
+
+    # Initialize an Adafruit IO HTTP API object
+    io = IO_HTTP(aio_username, aio_key, requests)
+
+    try:
+        feed = io.get_feed(feed_name)
+    except AdafruitIO_RequestError:
+        # If no feed exists, create one
+        feed = io.create_new_feed(feed_name)
+
+    # Send data to the feed
+    
+    print("Sending data to " + feed_name + " feed...".format(data))
+    io.send_data(feed["key"], data)
+    print("Sent")
+
+    # Retrieve data value from the feed
+    print("Retrieving data from " + feed_name + " feed")
+    received_data = io.receive_data(feed["key"])
+    print("Data from " + feed_name +  " feed: ", received_data["value"])
+
+
+def connect_to_wifi(secrets: dict) -> int:
+    try:
+        esp.connect_AP(secrets["ssid"], secrets["password"])
+    except RuntimeError as i:
+        print("could not connect to WIFI: ", i)
+        return 0
+    socket.set_interface(esp)
+    requests.set_socket(socket, esp)
+
+    aio_username = secrets["aio_username"]
+    aio_key = secrets["aio_key"]
+
+    # Initialize an Adafruit IO HTTP API object
+    io = IO_HTTP(aio_username, aio_key, requests)
+    return 1
+
+
 def hold_for_water():
     write_clear("Holding for water", 1)
     while not float_switch.value:  # checking main tank is full of (cold) water
@@ -146,11 +205,12 @@ def door_checker():
         door_sol.value = False
 
 
-def disinfect():
+def disinfect(error_list: list) -> list:
     write_clear("Disinfecting", 1)
     for _ in range(50):  # 70 seconds IRL
         if temperature.value // 700 + 20 < 85:  # check chamber temp
             write_clear("ERROR: LOW TEMP", 1)
+            error_list.append("Low temperature error")
             wait_update(1)
             write_clear("Heating steam", 1)
 #            file_errors.write(". Low temperature warning ")  # puts service warning in log
@@ -161,10 +221,11 @@ def disinfect():
 #            file_errors.flush()
             while temperature.value // 700 + 20 < 85:  # wait for chamber temp
                 update()
-            disinfect()  # recursively retry cycle
+            disinfect(error_list)  # recursively retry cycle
             break
         if temperature.value // 700 + 20 > 110:  # check chamber temp
             write_clear("ERROR: HIGH TEMP", 1)
+            error_list.append("High temperature error")
             wait_update(1)
 #            file_errors.write(". High temperature warning given ")  # puts service warning in log
 #            time_high_temp = time.localtime()  # records time when first service warning is given
@@ -177,10 +238,11 @@ def disinfect():
             while temperature.value // 700 + 20 > 90:  # let chamber cool until it is <90C
                 update()
             led_steam_gen.value=False
-            disinfect()
+            disinfect(error_list)
             break
         update()
     led_steam_gen.value=False
+    return error_list
 
 
 def do_super_wash():
@@ -212,7 +274,7 @@ def do_reg_wash():
     write_clear("Heating steam", 1)
     while temperature.value // 700 + 20 < 85:  # checking chamber temp to see if it is disinfecting yet
         update()
-    disinfect()
+    error_list = disinfect([])
     led_steam_gen.value=False
     hold_for_water()
     write_clear("Rinsing", 1)
@@ -222,6 +284,7 @@ def do_reg_wash():
     write_clear("Chamber cooling", 1)
     while temperature.value // 700 + 20 > 60:  # Waits for safe chamber temperature
         update()
+    post_data('Errors for cycle '  + str(read_count() + 1) + ': ' + ' | '.join(map(str, error_list)), 'errors')
     write_clear("Door Unlocked", 1)
 
 
@@ -263,28 +326,7 @@ def main():
 
 
 if __name__ == "__main__":
-    for _ in range(10):
-        t_1 = time.monotonic()
-        print(wait_update(2))
-        print(str(time.monotonic() - t_1) + "\n")
-#     print_cycle_count(read_count())     # Demonstrating how the machine will remember cycle counts
-#     update_cycle_count(read_count() + 1)    # Increasing cycle count
-#     print_cycle_count(read_count())
-#     write_clear("Testing inputs", 1)
-#     led_steam_gen.value = True
-#     led_cold_water.value = True
-#     led_door_sol.value = True
-#     led_dosing_pump.value = True
-#     while not super_wash:
-#         print("super wash value: " + str(super_wash.value))
-#         print("reg wash value: " + str(reg_wash.value))
-#         print("float switch value: " + str(float_switch.value))
-#         print("foot switch value: " + str(foot_switch.value))
-#         print("temperature: " + str(temperature.value))
-#     print_cycle_count(read_count())
-#     update_cycle_count(read_count() + 1)   #need to fix read-only filesystem
-#     wait_update(1)
-#     print_cycle_count(read_count())
-#     time.sleep(10)
+#     post_data('Main_cpy saying hi', 'errors') 
+#     post_data('can you post twice???', 'errors')    # No you can't
     main()
 
