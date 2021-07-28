@@ -54,22 +54,22 @@ if __name__ == "__main__":  # Ignore this if statement, just useful for easy imp
 
     # inputs (numbered from pico end down)
         # button 1
-    super_wash = DigitalInOut(board.GP3)
+    super_wash = DigitalInOut(board.GP2)
     super_wash.direction = Direction.INPUT
     super_wash.pull = Pull.DOWN
     
         # button 2
-    reg_wash = DigitalInOut(board.GP4)
+    reg_wash = DigitalInOut(board.GP3)
     reg_wash.direction = Direction.INPUT
     reg_wash.pull = Pull.DOWN
     
         # button 3
-    float_switch = DigitalInOut(board.GP5)
+    float_switch = DigitalInOut(board.GP4)
     float_switch.direction = Direction.INPUT
     float_switch.pull = Pull.DOWN
     
         # button 4
-    foot_switch = DigitalInOut(board.GP6)
+    foot_switch = DigitalInOut(board.GP5)
     foot_switch.direction = Direction.INPUT
     foot_switch.pull = Pull.DOWN
     
@@ -131,28 +131,33 @@ def print_cycle_count(current_cycle_count: int):
 
 
 def post_data(data, feed_name):
-    try:
-        esp.connect_AP(secrets["ssid"], secrets["password"])
-    except RuntimeError as i:
-        print("could not connect to WIFI: ", i)
-        return 0
-    print("Connected to wifi")
-    socket.set_interface(esp)
-    requests.set_socket(socket, esp)
+    if not esp.is_connected:
+        for _ in range(5):
+            print("Not connected to WiFi: Attempting to connect")
+            try:
+                esp.connect_AP(secrets["ssid"], secrets["password"])
+            except RuntimeError as i:
+                print("could not connect to WiFi: ", i)
+                continue
+            print("Connected to WiFi")
+            socket.set_interface(esp)
+            requests.set_socket(socket, esp)
+            break
 
-    aio_username = secrets["aio_username"]
-    aio_key = secrets["aio_key"]
+        # Initialize an Adafruit IO HTTP API object
+        io = IO_HTTP(secrets["aio_username"], secrets["aio_key"], requests)
 
-    # Initialize an Adafruit IO HTTP API object
-    io = IO_HTTP(aio_username, aio_key, requests)
+
+    else:
+        print("Already connected to wifi")
+    # Send data to the feed
+    io = IO_HTTP(secrets["aio_username"], secrets["aio_key"], requests)
 
     try:
         feed = io.get_feed(feed_name)
     except AdafruitIO_RequestError:
         # If no feed exists, create one
         feed = io.create_new_feed(feed_name)
-
-    # Send data to the feed
     
     print("Sending data to " + feed_name + " feed...".format(data))
     io.send_data(feed["key"], data)
@@ -162,23 +167,6 @@ def post_data(data, feed_name):
     print("Retrieving data from " + feed_name + " feed")
     received_data = io.receive_data(feed["key"])
     print("Data from " + feed_name +  " feed: ", received_data["value"])
-
-
-def connect_to_wifi(secrets: dict) -> int:
-    try:
-        esp.connect_AP(secrets["ssid"], secrets["password"])
-    except RuntimeError as i:
-        print("could not connect to WIFI: ", i)
-        return 0
-    socket.set_interface(esp)
-    requests.set_socket(socket, esp)
-
-    aio_username = secrets["aio_username"]
-    aio_key = secrets["aio_key"]
-
-    # Initialize an Adafruit IO HTTP API object
-    io = IO_HTTP(aio_username, aio_key, requests)
-    return 1
 
 
 def hold_for_water():
@@ -213,12 +201,12 @@ def disinfect(error_list: list) -> list:
             error_list.append("Low temperature error")
             wait_update(1)
             write_clear("Heating steam", 1)
-#            file_errors.write(". Low temperature warning ")  # puts service warning in log
-#            time_low_temp = time.localtime()  # records time when first service warning is given
-#            file_errors.write("{year:>04d}/{month:>02d}/{day:>02d} {HH:>02d}:{MM:>02d}:{SS:>02d}".format(
-#                year=time_low_temp[0], month=time_low_temp[1], day=time_low_temp[2],
-#                HH=time_low_temp[3], MM=time_low_temp[4], SS=time_low_temp[5]))  # with time
-#            file_errors.flush()
+            file_errors.write(". Low temperature warning ")  # puts service warning in log
+            time_low_temp = time.localtime()  # records time of error
+            file_errors.write("{year:>04d}/{month:>02d}/{day:>02d} {HH:>02d}:{MM:>02d}:{SS:>02d}".format(
+               year=time_low_temp[0], month=time_low_temp[1], day=time_low_temp[2],
+               HH=time_low_temp[3], MM=time_low_temp[4], SS=time_low_temp[5]))  # with time
+            file_errors.flush()
             while temperature.value // 700 + 20 < 85:  # wait for chamber temp
                 update()
             disinfect(error_list)  # recursively retry cycle
@@ -227,12 +215,12 @@ def disinfect(error_list: list) -> list:
             write_clear("ERROR: HIGH TEMP", 1)
             error_list.append("High temperature error")
             wait_update(1)
-#            file_errors.write(". High temperature warning given ")  # puts service warning in log
-#            time_high_temp = time.localtime()  # records time when first service warning is given
-#            file_errors.write("{year:>04d}/{month:>02d}/{day:>02d} {HH:>02d}:{MM:>02d}:{SS:>02d}".format(
-#                year=time_high_temp[0], month=time_high_temp[1], day=time_high_temp[2],
-#                HH=time_high_temp[3], MM=time_high_temp[4], SS=time_high_temp[5]))  # with time
-#            file_errors.flush()
+            file_errors.write(". High temperature warning given ")  # puts service warning in log
+            time_high_temp = time.localtime()  # records time of error
+            file_errors.write("{year:>04d}/{month:>02d}/{day:>02d} {HH:>02d}:{MM:>02d}:{SS:>02d}".format(
+               year=time_high_temp[0], month=time_high_temp[1], day=time_high_temp[2],
+               HH=time_high_temp[3], MM=time_high_temp[4], SS=time_high_temp[5]))  # with time
+            file_errors.flush()
             write_clear("COOLING", 1)
             led_steam_gen.value=False
             while temperature.value // 700 + 20 > 90:  # let chamber cool until it is <90C
@@ -301,7 +289,7 @@ def main():
                 while not check_door():
                     update()
                 print_cycle_count(read_count())
-                #update_cycle_count(read_count() + 1)  # Updates the cycle count to the previous count + 1
+                update_cycle_count(read_count() + 1)  # Updates the cycle count to the previous count + 1
                 write_clear("Ready", 1)
             else:
                 write_clear("DOOR NOT SHUT", 1)
@@ -316,7 +304,7 @@ def main():
                 while not check_door():
                     update()
                 print_cycle_count(read_count())
-                #update_cycle_count(read_count() + 1)  # Updates the cycle count to the previous count + 1
+                update_cycle_count(read_count() + 1)  # Updates the cycle count to the previous count + 1
                 write_clear("Ready", 1)
             else:
                 write_clear("DOOR NOT SHUT", 1)
@@ -326,7 +314,5 @@ def main():
 
 
 if __name__ == "__main__":
-#     post_data('Main_cpy saying hi', 'errors') 
-#     post_data('can you post twice???', 'errors')    # No you can't
     main()
 

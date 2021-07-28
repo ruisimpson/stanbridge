@@ -19,6 +19,4 @@ What voltages do we need to power each of the components?
 -Why are "file" and "time" global variables	
 
 aaron@stanbridge.co.uk
-
-halfway progress report/poster
-talk to jordan
+If pump fires and float switch doesnt -> float switch or pump is broken
