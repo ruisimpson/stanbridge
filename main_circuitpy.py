@@ -82,7 +82,7 @@ if __name__ == "__main__":  # Ignore this if statement, just useful for easy imp
     temperature = AnalogIn(board.GP26)
 
 def write_clear(message : str, linenumber : int):
-    lcd.write(message + " " * (20 - len(message)), linenumber)
+    lcd.write(message[:20] + " " * (20 - len(message)), linenumber)
     
     
 def update():  # Writes the "temperature" to the lcd. Takes 207.6 (+-0.1%) ms to update
@@ -100,6 +100,7 @@ def wait_update(time_s : float) -> float: # Should accurately time within 200ms.
     while time.monotonic() < start_time + time_s:   # Loops the update() until inputted time has elapsed
         update()
     return time.monotonic() - start_time # Returns the actual elapsed time (For validating the accuracy)
+
 
 def update_cycle_count(cycle_count: int):  # input the new cycle count
     file_count = open("count.txt", "w")  # creates file
@@ -169,6 +170,27 @@ def post_data(data, feed_name):
     print("Data from " + feed_name +  " feed: ", received_data["value"])
 
 
+def test_pump(error_list: list) -> list:           # Checks if float switch is still active after pump has reduced the tank level
+    if led_main_pump.value and float_switch.value: # Should only be tested after pump has been active for at least 10s
+        write_clear("PUMP ERROR DETECTED", 1)
+        wait_update(5)
+        if led_main_pump.value and float_switch.value:
+            error_list.append("Main pump/float switch error")
+            abort_cycle(error_list)
+            return False, error_list
+        else:
+            error_list.append("Inconclusive main pump/float switch error")
+            return True, error_list
+    return True, error_list
+    
+
+def abort_cycle(error_list: list):
+    error_list.append("CYCLE ABORTED")
+    write_clear("CYCLE ABORTED", 1)
+    write_clear(error_list[-2], 4)  # Displays error
+    post_data('Errors for cycle '  + str(read_count() + 1) + ': ' + ' | '.join(map(str, error_list)), 'errors')   
+        
+    
 def hold_for_water():
     write_clear("Holding for water", 1)
     while not float_switch.value:  # checking main tank is full of (cold) water
@@ -241,10 +263,10 @@ def do_super_wash():
     led_main_pump.value=True
     wait_update(4)  # 30 seconds IRL
     led_main_pump.value=False
-    do_reg_wash()
+    return do_reg_wash()
 
 
-def do_reg_wash():
+def do_reg_wash(error_list: list) -> bool:
     wait_update(1)
     led_door_sol.value=False
     hold_for_water()
@@ -253,6 +275,8 @@ def do_reg_wash():
     led_steam_gen.value=True
     led_dosing_pump.value=True
     wait_update(3)  # is this timing correct? Unsure IRL time
+    if not test_pump(error_list)[0]:
+        return False
     led_dosing_pump.value=False
     for _ in range(8):  # Pulsing the pump
         led_main_pump.value=True
@@ -262,7 +286,7 @@ def do_reg_wash():
     write_clear("Heating steam", 1)
     while temperature.value // 700 + 20 < 85:  # checking chamber temp to see if it is disinfecting yet
         update()
-    error_list = disinfect([])
+    error_list = disinfect(error_list)
     led_steam_gen.value=False
     hold_for_water()
     write_clear("Rinsing", 1)
@@ -274,6 +298,7 @@ def do_reg_wash():
         update()
     post_data('Errors for cycle '  + str(read_count() + 1) + ': ' + ' | '.join(map(str, error_list)), 'errors')
     write_clear("Door Unlocked", 1)
+    return True
 
 
 def main():
@@ -283,9 +308,11 @@ def main():
     while True:
         if super_wash.value==1:
             if door_closed:
+                error_list = [] # Clears error_list for the start of the cycle 
                 led_door_sol.value=True
                 write_clear("Superwash", 1)
-                do_super_wash()
+                if not do_super_wash():  # Ends main() if do_super_wash() returns False, ie if critical error has occured
+                    return False
                 while not check_door():
                     update()
                 print_cycle_count(read_count())
@@ -297,9 +324,11 @@ def main():
                 write_clear("Ready", 1)
         elif reg_wash.value==1:
             if door_closed:
+                error_list = []
                 led_door_sol.value=True
                 write_clear("Regular Wash", 1)
-                do_reg_wash()
+                if not do_reg_wash(error_list):   # Ends main() if do_reg_wash() returns False, ie if critical error has occured
+                    return False
                 wait_update(1)
                 while not check_door():
                     update()

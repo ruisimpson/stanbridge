@@ -1,22 +1,7 @@
-What do these things do/ are they still implemented?:
-
-dump_valve
-recycle_valve
-hot_water_valve
-
-Any other functions for override?
-
-Does the steam tank fill before main tank? 
-If main tank is empty can the steam tank always be full?
-(Do we have to wait for the main tank to fill before the steam heater can be turned on?)
-
-How does the temperature limiter bulb work?
-
-What voltages do we need to power each of the components?
-
--Overflow sensor
--Door open closed (on display)
--Why are "file" and "time" global variables	
-
 aaron@stanbridge.co.uk
+
+TODO:
 If pump fires and float switch doesnt -> float switch or pump is broken
+Overflow sensor
+More error checking ideas
+Figure out temperature probe that stanbridge machines use
