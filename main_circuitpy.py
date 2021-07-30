@@ -78,6 +78,10 @@ if __name__ == "__main__":  # Ignore this if statement, just useful for easy imp
     door_microswitch.direction = Direction.INPUT
     door_microswitch.pull = Pull.UP
    
+    #button reset
+#     reset_swtich
+#     btn = DigitalInOut(board.GP2)
+#     btn.direction = Direction.OUTPUT
     # adc for pentiometer to simulate temperature
     temperature = AnalogIn(board.GP26)
 
@@ -93,7 +97,14 @@ def update():  # Writes the "temperature" to the lcd. Takes 207.6 (+-0.1%) ms to
         write_clear("Door closed", 3)
     else:
         write_clear("Door open", 3)
-
+#     if reset_switch.value:
+#         
+#         file_count=open("count.txt","w")
+#         file_count.close()
+#         file_errors=open("errors.txt","w")
+#         file_errors.close()
+#         time.sleep(0.5)
+#  
 
 def wait_update(time_s : float) -> float: # Should accurately time within 200ms. Will always time for too long
     start_time = time.monotonic()
