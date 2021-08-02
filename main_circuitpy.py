@@ -82,6 +82,8 @@ if __name__ == "__main__":  # Ignore this if statement, just useful for easy imp
 #     reset_swtich
 #     btn = DigitalInOut(board.GP2)
 #     btn.direction = Direction.OUTPUT
+    
+    
     # adc for pentiometer to simulate temperature
     temperature = AnalogIn(board.GP26)
 
@@ -103,6 +105,7 @@ def update():  # Writes the "temperature" to the lcd. Takes 207.6 (+-0.1%) ms to
 #         file_count.close()
 #         file_errors=open("errors.txt","w")
 #         file_errors.close()
+#	   return False	
 #         time.sleep(0.5)
 #  
 
@@ -193,7 +196,7 @@ def test_pump(error_list: list) -> list:           # Checks if float switch is s
             error_list.append("Inconclusive main pump/float switch error")
             return True, error_list
     return True, error_list
-    
+
 
 def abort_cycle(error_list: list):
     error_list.append("CYCLE ABORTED")
