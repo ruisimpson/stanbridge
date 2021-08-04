@@ -1,0 +1,15 @@
+Made new prototype
+
+Added wireless error recording to our code
+
+Added new error checking to our code
+
+Filesystem working with our prototype
+
+Reset button (key override)
+
+Temperature sensor working
+
+Recorded details of our prototype and design decisions
+
+Improved instructions and explanations of code for better readability
