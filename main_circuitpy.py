@@ -21,7 +21,7 @@ if __name__ == '__main__':  # Ignore this if statement, just useful for easy imp
     led_main_pump.direction = Direction.OUTPUT
 
     # red led
-    led_steam_gen = DigitalInOut(board.GP15)
+    led_steam_gen = DigitalInOut(board.GP15)    #need to change as taken up by water sensor
     led_steam_gen.direction = Direction.OUTPUT
 
     # green led
@@ -71,7 +71,10 @@ if __name__ == '__main__':  # Ignore this if statement, just useful for easy imp
 
     # adc for pentiometer to simulate temperature
     temperature = AnalogIn(board.GP26)
-
+    
+    #water_sensor
+    overflow=DigitalInOut(board.GP15)
+    overflow=Direction.Input
 
 class Diagnostics:
     '''This class handles all of the WiFi and cycle count features of the machines'''
@@ -164,6 +167,10 @@ def update():  # Writes the 'temperature' to the lcd. Takes 207.6 (+-0.1%) ms to
         write_clear('Door closed', 3)
     else:
         write_clear('Door open', 3)
+        
+    if overflow.value==True:
+        machine_1.error_list.append('Overflow sensor error')
+        
 
 
 def wait_update(time_s: float) -> float:  # Should accurately time within 200ms. Will always time for too long
