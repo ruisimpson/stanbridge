@@ -10,43 +10,7 @@ from adafruit_esp32spi import adafruit_esp32spi
 import adafruit_requests as requests
 from adafruit_io.adafruit_io import IO_HTTP, AdafruitIO_RequestError
 from adafruit_io import adafruit_io
-
-<<<<<<< Updated upstream
-
-#from picoplay import lcd_change_line  # Functions for writing to multiple lines with lcd
-#from machine import I2C
-#from pico_i2c_lcd import I2cLcd  # Interfacing with the LCD
-
-n = 0
-
-#file_errors = open("errors.txt", "w")
-
-
-
-if __name__ == "__main__":  # Ignore this if statement, just useful for easy importing of this file as a module
-    # outputs (numbered from pico end down)
     
-        # onboard led
-    led_main_pump = DigitalInOut(board.GP25)
-    led_main_pump.direction = Direction.OUTPUT
-    
-        # red led
-    led_steam_gen = DigitalInOut(board.GP15)
-    led_steam_gen.direction = Direction.OUTPUT
-    
-        # green led
-    led_door_sol = DigitalInOut(board.GP13)
-    led_door_sol.direction = Direction.OUTPUT
-    
-        # blue led
-    led_dosing_pump=DigitalInOut(board.GP20)
-    led_dosing_pump.direction = Direction.OUTPUT
-    
-        # LCD
-    lcd = hd44780.HD44780(busio.I2C(board.GP1,board.GP0), address=0x27)  # (i2c, address, rows, columns) for lcd
-    
-        # Wireless module
-=======
 if __name__ == '__main__':
     # Ignore this if statement, just useful for easy importing of this file
     # Outputs (numbered from pico end down)
@@ -71,7 +35,6 @@ if __name__ == '__main__':
     lcd = hd44780.HD44780(busio.I2C(board.GP1, board.GP0), address=0x27)
 
     # Wireless module
->>>>>>> Stashed changes
     esp32_cs = DigitalInOut(board.GP7)
     esp32_ready = DigitalInOut(board.GP10)
     esp32_reset = DigitalInOut(board.GP11)
@@ -80,41 +43,6 @@ if __name__ == '__main__':
     esp = adafruit_esp32spi.ESP_SPIcontrol(spi, esp32_cs,
                                            esp32_ready, esp32_reset)
 
-<<<<<<< Updated upstream
-    # inputs (numbered from pico end down)
-        # button 1
-    super_wash = DigitalInOut(board.GP2)
-    super_wash.direction = Direction.INPUT
-    super_wash.pull = Pull.DOWN
-    
-        # button 2
-    reg_wash = DigitalInOut(board.GP3)
-    reg_wash.direction = Direction.INPUT
-    reg_wash.pull = Pull.DOWN
-    
-        # button 3
-    float_switch = DigitalInOut(board.GP4)
-    float_switch.direction = Direction.INPUT
-    float_switch.pull = Pull.DOWN
-    
-        # button 4
-    foot_switch = DigitalInOut(board.GP5)
-    foot_switch.direction = Direction.INPUT
-    foot_switch.pull = Pull.DOWN
-    
-        #button wifi
-    door_microswitch = DigitalInOut(board.GP12)
-    door_microswitch.direction = Direction.INPUT
-    door_microswitch.pull = Pull.UP
-   
-    #button reset
-#     reset_swtich
-#     btn = DigitalInOut(board.GP2)
-#     btn.direction = Direction.OUTPUT
-    
-    
-    # adc for pentiometer to simulate temperature
-=======
     # Inputs (numbered from pico end down)
     # Button 1
     super_wash = DigitalInOut(board.GP2)
@@ -140,66 +68,20 @@ if __name__ == '__main__':
     door_microswitch = DigitalInOut(board.GP12)
     door_microswitch.direction = Direction.INPUT
     door_microswitch.pull = Pull.UP
+    
+    # Button reset
+#     reset_swtich
+#     btn = DigitalInOut(board.GP2)
+#     btn.direction = Direction.OUTPUT
 
     # ADC for pentiometer to simulate temperature
->>>>>>> Stashed changes
     temperature = AnalogIn(board.GP26)
-
-def write_clear(message : str, linenumber : int):
-    lcd.write(message[:20] + " " * (20 - len(message)), linenumber)
     
-    
-def update():  # Writes the "temperature" to the lcd. Takes 207.6 (+-0.1%) ms to update
-    write_clear("Temperature: " + str(temperature.value // 700 + 20) + "C", 2)  # updating the temperature
-    if temperature.value // 700 + 20 > 110:  # IRL 120, temperature limited # Might need to change read_u16 for circuitPY
-        led_steam_gen.value=False
-    if door_microswitch.value:
-        write_clear("Door closed", 3)
-    else:
-        write_clear("Door open", 3)
-#     if reset_switch.value:
-#         
-#         file_count=open("count.txt","w")
-#         file_count.close()
-#         file_errors=open("errors.txt","w")
-#         file_errors.close()
-#	   return False	
-#         time.sleep(0.5)
-#  
-
-def wait_update(time_s : float) -> float: # Should accurately time within 200ms. Will always time for too long
-    start_time = time.monotonic()
-    while time.monotonic() < start_time + time_s:   # Loops the update() until inputted time has elapsed
-        update()
-    return time.monotonic() - start_time # Returns the actual elapsed time (For validating the accuracy)
-
-<<<<<<< Updated upstream
-
-def update_cycle_count(cycle_count: int):  # input the new cycle count
-    file_count = open("count.txt", "w")  # creates file
-    file_count.write("Number of cycles is: ")  # records n value
-    file_count.write(str(cycle_count))
-    file_count.flush()
-    if cycle_count == 14:
-        time = time.localtime()  # records time when first service warning is given
-        file_errors.write(". Service warning given on ")  # puts service warning in log
-        file_errors.write("{year:>04d}/{month:>02d}/{day:>02d} {HH:>02d}:{MM:>02d}:{SS:>02d}".format(
-            year=time[0], month=time[1], day=time[2],
-            HH=time[3], MM=time[4], SS=time[5]))  # with time
-        file_errors.flush()
-    if cycle_count > 15:
-        write_clear("Unit needs servicing", 1)  # puts service warning on LCD after more than 1 press
-        wait_update(3)
-    file_count.flush()
+    #water_sensor
+    overflow=DigitalInOut(board.GP15)
+    overflow=Direction.Input
 
 
-def read_count() -> int:
-    f_count = open("count.txt", "r")
-    current_cycle_count = int(f_count.readline().split()[4])  # reading and saving the cycle count from the file
-    f_count.close()
-    return current_cycle_count
-
-=======
 class Diagnostics:
     """Diagnostics runs and saves machine information."""
     service_cycle_count = 100
@@ -210,15 +92,17 @@ class Diagnostics:
         self.read_count()
 
 
-    def __str__(self):  # The diagnostics can be printed for debugging
+    def __str__(self):  
+        """The diagnostics can be printed for debugging."""
         return ('Errors for cycle ' + str(self.read_count() + 1) + ': '
                 + ' | '.join(map(str, self.error_list)))
 
 
-    def connect_to_wifi(self): # Attempts to connect to Wifi, with 5 tries
+    def connect_to_wifi(self): 
+      """Attempts to connect to Wifi, with 5 tries."""
         print('Attempting to connect to WiFi')
         if not esp.is_connected:
-            for _ in range(5):  # 5 attempts to connect to WiFi
+            for _ in range(5):  # 5 attempts
                 print('Not connected to WiFi: Attempting to connect')
                 try:
                     esp.connect_AP(secrets['ssid'], secrets['password'])
@@ -239,7 +123,6 @@ class Diagnostics:
 
     def post_errors(self):
         """Posts errors from the error_list file to Errors."""
-        
         self.write_errors()
         self.connect_to_wifi()
         if esp.is_connected:
@@ -325,17 +208,12 @@ def write_clear(message: str, linenumber: int):
     Also ensures the previous text is overwritten
     """
     lcd.write(message[:20] + ' ' * (20 - len(message)), linenumber)
->>>>>>> Stashed changes
 
-def print_cycle_count(current_cycle_count: int):
-    write_clear("Cycle count: " + str(current_cycle_count), 4)
 
-<<<<<<< Updated upstream
-=======
 def update():
     """Performs all background processes.
 
-    Updates temperature, door status.
+    Updates temperature, door status, reset status.
     """
     temp = temperature.value // 700 + 20
     write_clear(f'Temperature: {temp}C', 2)
@@ -347,73 +225,17 @@ def update():
         write_clear('Door closed', 3)
     else:
         write_clear('Door open', 3)
->>>>>>> Stashed changes
+    if overflow.value:
+        machine_1.error_list.append('Overflow sensor error')
+#     if reset_switch.value:
+#         
+#         file_count=open("count.txt","w")
+#         file_count.close()
+#         file_errors=open("errors.txt","w")
+#         file_errors.close()
+#         time.sleep(0.5)       
 
-def post_data(data, feed_name):
-    if not esp.is_connected:
-        for _ in range(5):
-            print("Not connected to WiFi: Attempting to connect")
-            try:
-                esp.connect_AP(secrets["ssid"], secrets["password"])
-            except RuntimeError as i:
-                print("could not connect to WiFi: ", i)
-                continue
-            print("Connected to WiFi")
-            socket.set_interface(esp)
-            requests.set_socket(socket, esp)
-            break
-
-<<<<<<< Updated upstream
-        # Initialize an Adafruit IO HTTP API object
-        io = IO_HTTP(secrets["aio_username"], secrets["aio_key"], requests)
-
-
-    else:
-        print("Already connected to wifi")
-    # Send data to the feed
-    io = IO_HTTP(secrets["aio_username"], secrets["aio_key"], requests)
-
-    try:
-        feed = io.get_feed(feed_name)
-    except AdafruitIO_RequestError:
-        # If no feed exists, create one
-        feed = io.create_new_feed(feed_name)
-    
-    print("Sending data to " + feed_name + " feed...".format(data))
-    io.send_data(feed["key"], data)
-    print("Sent")
-
-    # Retrieve data value from the feed
-    print("Retrieving data from " + feed_name + " feed")
-    received_data = io.receive_data(feed["key"])
-    print("Data from " + feed_name +  " feed: ", received_data["value"])
-
-
-def test_pump(error_list: list) -> list:           # Checks if float switch is still active after pump has reduced the tank level
-    if led_main_pump.value and float_switch.value: # Should only be tested after pump has been active for at least 10s
-        write_clear("PUMP ERROR DETECTED", 1)
-        wait_update(5)
-        if led_main_pump.value and float_switch.value:
-            error_list.append("Main pump/float switch error")
-            abort_cycle(error_list)
-            return False, error_list
-        else:
-            error_list.append("Inconclusive main pump/float switch error")
-            return True, error_list
-    return True, error_list
-
-
-def abort_cycle(error_list: list):
-    error_list.append("CYCLE ABORTED")
-    write_clear("CYCLE ABORTED", 1)
-    write_clear(error_list[-2], 4)  # Displays error
-    post_data('Errors for cycle '  + str(read_count() + 1) + ': ' + ' | '.join(map(str, error_list)), 'errors')   
-        
-    
-def hold_for_water():
-    write_clear("Holding for water", 1)
-    while not float_switch.value:  # checking main tank is full of (cold) water
-=======
+      
 def wait_update(time_s: float) -> float:
     """Continously updates background features while holding.
     
@@ -461,35 +283,23 @@ def hold_for_water():
     """Waits until the tank is full."""
     write_clear('Holding for water', 1)
     while not float_switch.value:
->>>>>>> Stashed changes
         update()
 
 
 def check_door() -> bool:
-<<<<<<< Updated upstream
-    if foot_switch.value == 1:
-        led_door_sol.value=True
-=======
     """Performs a check of the foot switch
 
     Might not be necessary to do it this way
     """
     if foot_switch.value:
         led_door_sol.value = True
->>>>>>> Stashed changes
         return True
     else:
-        led_door_sol.value=False
+        led_door_sol.value = False
         return False
 
 
 def door_checker():
-<<<<<<< Updated upstream
-    if foot_switch.value:
-        door_sol.value = True
-#        while not door_microswitch.value:   # waits for door to have opened to stop door solenoid
-#            time.sleep(0.01)
-=======
     """Checks the door.
 
     Waits until the door microswitch has opened to stop the door solenoid.
@@ -498,44 +308,10 @@ def door_checker():
         door_sol.value = True
         #        while not door_microswitch.value:
         #            time.sleep(0.01)
->>>>>>> Stashed changes
         wait_update(0.200)
         door_sol.value = False
 
 
-<<<<<<< Updated upstream
-def disinfect(error_list: list) -> list:
-    write_clear("Disinfecting", 1)
-    for _ in range(50):  # 70 seconds IRL
-        if temperature.value // 700 + 20 < 85:  # check chamber temp
-            write_clear("ERROR: LOW TEMP", 1)
-            error_list.append("Low temperature error")
-            wait_update(1)
-            write_clear("Heating steam", 1)
-            file_errors.write(". Low temperature warning ")  # puts service warning in log
-            time_low_temp = time.localtime()  # records time of error
-            file_errors.write("{year:>04d}/{month:>02d}/{day:>02d} {HH:>02d}:{MM:>02d}:{SS:>02d}".format(
-               year=time_low_temp[0], month=time_low_temp[1], day=time_low_temp[2],
-               HH=time_low_temp[3], MM=time_low_temp[4], SS=time_low_temp[5]))  # with time
-            file_errors.flush()
-            while temperature.value // 700 + 20 < 85:  # wait for chamber temp
-                update()
-            disinfect(error_list)  # recursively retry cycle
-            break
-        if temperature.value // 700 + 20 > 110:  # check chamber temp
-            write_clear("ERROR: HIGH TEMP", 1)
-            error_list.append("High temperature error")
-            wait_update(1)
-            file_errors.write(". High temperature warning given ")  # puts service warning in log
-            time_high_temp = time.localtime()  # records time of error
-            file_errors.write("{year:>04d}/{month:>02d}/{day:>02d} {HH:>02d}:{MM:>02d}:{SS:>02d}".format(
-               year=time_high_temp[0], month=time_high_temp[1], day=time_high_temp[2],
-               HH=time_high_temp[3], MM=time_high_temp[4], SS=time_high_temp[5]))  # with time
-            file_errors.flush()
-            write_clear("COOLING", 1)
-            led_steam_gen.value=False
-            while temperature.value // 700 + 20 > 90:  # let chamber cool until it is <90C
-=======
 def disinfect() -> list:
     """Disinfection.
     
@@ -563,45 +339,30 @@ def disinfect() -> list:
             write_clear('COOLING', 1)
             # Let chamber cool until it is <90C
             while temperature.value // 700 + 20 > 90:  
->>>>>>> Stashed changes
                 update()
-            led_steam_gen.value=False
-            disinfect(error_list)
+            led_steam_gen.value = True
+            disinfect()
             break
         update()
-    led_steam_gen.value=False
-    return error_list
+    led_steam_gen.value = False
 
 
 def do_super_wash():
     wait_update(1)
-    led_door_sol.value=False
+    led_door_sol.value = False
     hold_for_water()
-    write_clear("Washing", 1)
-    led_main_pump.value=True
+    write_clear('Washing', 1)
+    led_main_pump.value = True
     wait_update(4)  # 30 seconds IRL
-    led_main_pump.value=False
-    return do_reg_wash()
+    led_main_pump.value = False
+    do_reg_wash()
 
 
-<<<<<<< Updated upstream
-def do_reg_wash(error_list: list) -> bool:
-=======
+
 def do_reg_wash():
->>>>>>> Stashed changes
     wait_update(1)
-    led_door_sol.value=False
+    led_door_sol.value = False
     hold_for_water()
-<<<<<<< Updated upstream
-    write_clear("Washing", 1)
-    led_main_pump.value=True
-    led_steam_gen.value=True
-    led_dosing_pump.value=True
-    wait_update(3)  # is this timing correct? Unsure IRL time
-    if not test_pump(error_list)[0]:
-        return False
-    led_dosing_pump.value=False
-=======
     write_clear('Washing', 1)
     led_main_pump.value = True
     led_steam_gen.value = True
@@ -609,19 +370,12 @@ def do_reg_wash():
     wait_update(3)  # Is this timing correct? Unsure IRL time
     test_pump()
     led_dosing_pump.value = False
->>>>>>> Stashed changes
     for _ in range(8):  # Pulsing the pump
-        led_main_pump.value=True
+        led_main_pump.value = True
         wait_update(0.200)
-        led_main_pump.value=False
+        led_main_pump.value = False
         wait_update(0.200)
-<<<<<<< Updated upstream
-    write_clear("Heating steam", 1)
-    while temperature.value // 700 + 20 < 85:  # checking chamber temp to see if it is disinfecting yet
-        update()
-    error_list = disinfect(error_list)
-    led_steam_gen.value=False
-=======
+
     write_clear('Heating steam', 1)
     start_temperature = temperature.value // 700 + 20
     time_start_temperature = time.localtime()
@@ -640,84 +394,61 @@ def do_reg_wash():
     
     disinfect()
     led_steam_gen.value = False
->>>>>>> Stashed changes
     hold_for_water()
-    write_clear("Rinsing", 1)
-    led_main_pump.value=True
+    write_clear('Rinsing', 1)
+    led_main_pump.value = True
     wait_update(2)  # 5-10 seconds IRL
-<<<<<<< Updated upstream
-    led_main_pump.value=False
-    write_clear("Chamber cooling", 1)
-    while temperature.value // 700 + 20 > 60:  # Waits for safe chamber temperature
+    led_main_pump.value = False
+    write_clear('Chamber cooling', 1)
+    # Waits for safe chamber temperature
+    while temperature.value // 700 + 20 > 60:  
         update()
-    post_data('Errors for cycle '  + str(read_count() + 1) + ': ' + ' | '.join(map(str, error_list)), 'errors')
-    write_clear("Door Unlocked", 1)
+    machine_1.post_errors()
+    machine_1.write_errors()
+    print(machine_1)
+    write_clear('Door Unlocked', 1)
     return True
 
 
 def main():
-    print_cycle_count(read_count())
     door_closed = True  # Fake initial state of door so code may be run
-    write_clear("Ready", 1)
-=======
-    led_main_pump.value = False
-    write_clear('Chamber cooling', 1)
-    
-    # Waits for safe chamber temperature
-    while temperature.value // 700 + 20 > 60:
-        update()
-    machine_1.post_errors()
-    print(machine_1)
-    write_clear('Door Unlocked', 1)
-
-
-
-def main():
-    door_closed = True      # Fake initial state of door so code may be run
     write_clear('Ready', 1)
->>>>>>> Stashed changes
     while True:
-        if super_wash.value==1:
+        if super_wash.value:
             if door_closed:
-                error_list = [] # Clears error_list for the start of the cycle 
-                led_door_sol.value=True
-                write_clear("Superwash", 1)
-                if not do_super_wash():  # Ends main() if do_super_wash() returns False, ie if critical error has occured
-                    return False
+                led_door_sol.value = True
+                write_clear('Superwash', 1)
+                do_super_wash()
                 while not check_door():
                     update()
-                print_cycle_count(read_count())
-                update_cycle_count(read_count() + 1)  # Updates the cycle count to the previous count + 1
-                write_clear("Ready", 1)
+                machine_1.update_cycle_count()
+                machine_1.print_cycle_count()
+                write_clear('Ready', 1)
             else:
-                write_clear("DOOR NOT SHUT", 1)
+                write_clear('DOOR NOT SHUT', 1)
                 wait_update(1)
-                write_clear("Ready", 1)
-        elif reg_wash.value==1:
+                write_clear('Ready', 1)
+        elif reg_wash.value:
             if door_closed:
-                error_list = []
-                led_door_sol.value=True
-                write_clear("Regular Wash", 1)
-                if not do_reg_wash(error_list):   # Ends main() if do_reg_wash() returns False, ie if critical error has occured
-                    return False
+                led_door_sol.value = True
+                write_clear('Regular Wash', 1)
+                do_reg_wash()
                 wait_update(1)
                 while not check_door():
                     update()
-                print_cycle_count(read_count())
-                update_cycle_count(read_count() + 1)  # Updates the cycle count to the previous count + 1
-                write_clear("Ready", 1)
+                machine_1.update_cycle_count()
+                machine_1.print_cycle_count()
+                write_clear('Ready', 1)
             else:
-                write_clear("DOOR NOT SHUT", 1)
+                write_clear('DOOR NOT SHUT', 1)
                 wait_update(1)
-                write_clear("Ready", 1)
+                write_clear('Ready', 1)
+        machine_1.print_cycle_count()
         update()
 
 
-<<<<<<< Updated upstream
-if __name__ == "__main__":
-=======
+
 if __name__ == '__main__':
     machine_1 = Diagnostics()
->>>>>>> Stashed changes
     main()
 

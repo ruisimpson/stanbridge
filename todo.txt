@@ -1,7 +1,8 @@
 aaron@stanbridge.co.uk
 
 TODO:
-If pump fires and float switch doesnt -> float switch or pump is broken
 Overflow sensor
 More error checking ideas
 Figure out temperature probe that stanbridge machines use
+KEY OVERRIDE!!!
+Make sure errors file includes history of all errors, or can print the total list of lifetime errors since reset
